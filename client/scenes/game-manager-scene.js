@@ -1,4 +1,5 @@
 import MyTilesetScene from "./my-tileset-scene.js"
+import ServerConnectionScene from "./server-connection-scene.js"
 import GlobalFuncs from "../global-funcs.js"
 
 
@@ -14,8 +15,8 @@ export default class GameManagerScene extends Phaser.Scene {
 		console.log('adding scenes...');
 
 		//testing arcade physics
-		this.scene.add('my-tileset-scene', MyTilesetScene);
-		this.scene.start('my-tileset-scene');
+		this.scene.add('server-connection-scene', ServerConnectionScene);
+		this.scene.start('server-connection-scene');
 
 
 		//some things to press and log stuff when i need to
@@ -24,11 +25,9 @@ export default class GameManagerScene extends Phaser.Scene {
 			switch(e.keyCode) {				
 				case 49: //1
 					console.log('1 clicked.');
-					this.scene.pause("my-tileset-scene");
 					break;
 				case 50: //2
-					//console.log('2 clicked.');
-					this.scene.resume("my-tileset-scene");
+					console.log('2 clicked.');
 					break;
 				case 51: //3
 					console.log('3 clicked.');

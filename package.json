@@ -4,8 +4,8 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"dev": "webpack-dev-server --env.env=dev",
-		"prod": "webpack-dev-server --env.env=prod",
+		"dev": "webpack --env.env=dev && node server.js",
+		"prod": "webpack --env.env=prod && node server.js",
 		"build-dev": "webpack --env.env=dev",
 		"build-prod": "webpack --env.env=prod"
 	},
@@ -29,6 +29,7 @@
 		"webpack": "^4.44.1",
 		"webpack-cli": "^3.3.12",
 		"webpack-dev-server": "^3.11.0",
-		"webpack-merge": "^5.1.4"
+		"webpack-merge": "^5.1.4",
+		"ws": "^7.3.1"
 	}
 }

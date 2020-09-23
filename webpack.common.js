@@ -7,26 +7,14 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
 	mode: 'production',
 	entry: {
-		app: './src/app.js'
+		app: './client/client.js'
 	},
 	output: {
-		path: path.resolve(__dirname, 'dist'),
+		path: path.resolve(__dirname, 'client-dist'),
 		filename: '[name].bundle.js'
 	},
 	plugins: [
 		new CleanWebpackPlugin(),
-		new CopyWebpackPlugin({
-			patterns: [
-				{
-					from: path.resolve(__dirname, 'index.html'),
-					to: path.resolve(__dirname, 'dist')
-				},
-				{
-					from: path.resolve(__dirname, 'assets'),
-					to: path.resolve(__dirname, 'dist/assets')
-				}
-			]			
-		}),
 		new webpack.DefinePlugin({
 			'typeof CANVAS_RENDERER': JSON.stringify(true),
 			'typeof WEBGL_RENDERER': JSON.stringify(true)

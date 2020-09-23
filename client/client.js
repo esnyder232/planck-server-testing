@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
 import GameManagerScene from './scenes/game-manager-scene.js'
-import WebSocketTest from "./web-socket-test.js"
 
-export default class App {
+export default class Client {
 	constructor() {
 		this.game = {};
 		this.config = {};
@@ -33,7 +32,6 @@ export default class App {
 
 		this.game = new Phaser.Game(this.config);
 		this.game.scene.add('game-manager-scene', GameManagerScene, true);
-		this.wst = new WebSocketTest();
 	}	
 }
 
@@ -42,6 +40,6 @@ export default class App {
 
 
 //feels like a hacky way to start...oh well. Its simple atleast.
-var app = new App();
+var app = new Client();
 
 
