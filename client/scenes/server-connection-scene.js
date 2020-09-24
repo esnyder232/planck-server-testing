@@ -35,6 +35,29 @@ export default class ServerConnectionScene extends Phaser.Scene {
 		this.yAxisGraphic.moveTo(0, 0);
 		this.yAxisGraphic.lineTo(0, 10);
 		this.yAxisGraphic.strokePath();
+
+		//create functions for the start/stop/restart buttons
+		window.addEventListener("start-event", this.startEvent.bind(this));
+		window.addEventListener("stop-event", this.stopEvent.bind(this));
+		window.addEventListener("restart-event", this.restartEvent.bind(this));
+	}
+
+	startEvent() {
+		console.log('StartEvent started');
+		this.sendJsonEvent(this.ws, "start-Event", "");
+		console.log('StartEvent DONE');
+	}
+
+	stopEvent() {
+		console.log('stopEvent started');
+		this.sendJsonEvent(this.ws, "stop-Event", "");
+		console.log('stopEvent DONE');
+	}
+
+	restartEvent() {
+		console.log('restartEvent started');
+		this.sendJsonEvent(this.ws, "restart-event", "");
+		console.log('restartEvent DONE');
 	}
 	  
 	update(timeElapsed, dt) {

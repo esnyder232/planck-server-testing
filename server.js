@@ -32,145 +32,30 @@ server.on('upgrade', (req, socket, head) => {
 	console.log('Someone is connectiong with websockets. Handling websocket handshake...');
 	return wss.handleUpgrade(req, socket, head, socket => {
 		console.log('Websocket connected!');
-		socket.on("close", onclose);
-		socket.on("error", onerror);
+		socket.on("close", onclose.bind(this, socket));
+		socket.on("error", onerror.bind(this, socket));
 		socket.on("message", onmessage.bind(this, socket));
-		socket.on("pong", onpong);
+		socket.on("pong", onpong.bind(this, socket));
 		socket.ping("this is a ping");
 	})
 })
 
-
-
-function onclose(m) {
-	console.log('socket onclose: ' + m);
-}
-function onerror(m) {
-	console.log('socket onerror: ' + m);
-}
-function onmessage(socket, m) {
-	console.log('socket onmessage: ' + m);
-	var jsonMsg = getJsonEvent(m);
-	console.log("event is: " + jsonMsg.event + ". msg is: " + jsonMsg.msg);
-
-	if(jsonMsg.event.toLowerCase() == "get-world") {
-		//return planck world's stuff
-		console.log('now getting world');
-
-		var currentBody = gw.world.getBodyList();
-		var arrBodies = [];
-		var bodyIDCounter = 1;
-		var fixtureIDCounter = 1;
-		while(currentBody)
-		{
-
-			var bodyObj = {
-				id: bodyIDCounter,
-				x: 0,
-				y: 0,
-				fixtures: []
-			};
-
-			var pos = currentBody.getPosition();
-			bodyObj.x = pos.x;
-			bodyObj.y = pos.y;
-
-			var currentFixture = currentBody.getFixtureList();
-			while(currentFixture)
-			{
-				var shape = currentFixture.getShape();
-				var vertices = [];
-				switch(currentFixture.getType().toLowerCase())
-				{
-					case "polygon":
-						for(var i = 0; i < shape.m_vertices.length; i++)
-						{
-							var v = {
-								x: shape.m_vertices[i].x,
-								y: shape.m_vertices[i].y
-							};
-							vertices.push(v)
-						}
-						break;
-					case "edge":
-						var v1 = {
-							x: shape.m_vertex1.x,
-							y: shape.m_vertex1.y
-						};
-						var v2 = {
-							x: shape.m_vertex2.x,
-							y: shape.m_vertex2.y
-						};
-						vertices.push(v1);
-						vertices.push(v2);
-						break;
-					default:
-						break;
-				}
-				
-
-				var fixtureObj = {
-					id: fixtureIDCounter,
-					shapeType: currentFixture.getType(),
-					radius: shape.getRadius(),
-					vertices: vertices
-				}
-
-				bodyObj.fixtures.push(fixtureObj);
-				currentFixture = currentFixture.getNext();
-				fixtureIDCounter++;
-			}
-
-			
-
-			arrBodies.push(bodyObj);
-			currentBody = currentBody.getNext();
-			bodyIDCounter++;
-		}
-
-		sendJsonEvent(socket, "get-world-response", JSON.stringify(arrBodies))
-
-		console.log('getting world done')
-	}
-	else {
-		//just echo something back
-		sendJsonEvent(socket, "echoback", "hello back from the server!");
-	}
-}
-function onpong(m) {
-	console.log('socket onpong: ' + m);
-}
-
 //make a example game world
 var gw = new GameWorld();
 gw.create();
+gw.startGameLoop();
 
 
-//a quick function to add some structure to the messages going across websockets
-function sendJsonEvent(socket, event, msg) {
-	if(!event)
-	{
-		event = "unknown"
-	}
-	if(!msg)
-	{
-		msg = ""
-	}
-	
-	var data = {
-		event: event,
-		msg: msg
-	}
-	socket.send(JSON.stringify(data));
+function onclose(socket, m) {	
+	gw.onclose(socket, m);	
+}
+function onerror(socket, m) {
+	gw.onerror(socket, m);
+}
+function onmessage(socket, m) {
+	gw.onmessage(socket, m);
+}
+function onpong(socket, m) {
+	gw.onpong(socket, m);
 }
 
-function getJsonEvent(msg) {
-	var j = {};
-	if(!msg)
-	{
-		return j;
-	}
-
-	j = JSON.parse(msg);
-	return j;
-}

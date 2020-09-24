@@ -32,7 +32,7 @@ export default class Client {
 
 		this.game = new Phaser.Game(this.config);
 		this.game.scene.add('game-manager-scene', GameManagerScene, true);
-	}	
+	}
 }
 
 
