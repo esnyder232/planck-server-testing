@@ -5,9 +5,12 @@ class GameWorld {
 	constructor() {
 		this.world = null;		
 		this.globalfuncs = new GlobalFuncs();
-		this.frameRate = 1; //fps
+		this.frameRate = 30; //fps
 		this.framePeriod = 1000 / this.frameRate; //ms
 		this.isRunning = false;
+		this.frameNum = 0;
+		this.socketArr = [];
+		this.wsIDCounter = 1;
 	}
 
 	create() {
@@ -22,20 +25,23 @@ class GameWorld {
 		
 			//origin lines
 			var xAxisBody = this.world.createBody({
-				position: Vec2(0, 0)
+				position: Vec2(0, 0),
+				userData: {id: 1}
 			});
 			var xAxisShape = pl.Edge(Vec2(0, 0), Vec2(1, 0));
 			xAxisBody.createFixture(xAxisShape);
 		
 			var yAxisBody = this.world.createBody({
-				position: Vec2(0, 0)
+				position: Vec2(0, 0),
+				userData: {id: 2}
 			});
 			var yAxisShape = pl.Edge(Vec2(0, 0), Vec2(0, 1));
 			yAxisBody.createFixture(yAxisShape);
 		
 			//ground
 			var ground = this.world.createBody({
-				position: Vec2(0, -10)
+				position: Vec2(0, -10),
+				userData: {id: 3}
 			});	
 			var groundShape = pl.Box(20, 5, Vec2(0,0));
 			ground.createFixture(groundShape, 0);
@@ -43,8 +49,9 @@ class GameWorld {
 			
 			//box
 			this.boxBody = this.world.createBody({
-				position: Vec2(1, 10),
-				type: pl.Body.DYNAMIC
+				position: Vec2(1.5, 3.1),
+				type: pl.Body.DYNAMIC,
+				userData: {id: 4}
 			});
 			var boxShape = pl.Box(1, 1);
 			this.boxBody.createFixture({
@@ -56,15 +63,38 @@ class GameWorld {
 			var boxShape2 = pl.Box(1, 1, Vec2(-1, -1));
 			this.boxBody.createFixture({
 				shape: boxShape2,
-				density: 1000.0,
+				density: 1.0,
 				friction: 0.3
 			});	
+
+			this.world.on("begin-contact", this.beginContact.bind(this));
+			this.world.on("end-contact", this.endContact.bind(this));
 		}
+
 		console.log('creating gameworld done');
+	}
+
+	beginContact(a, b, c) {
+		console.log('beginContact!');
+		var stophere = true;
+	}
+
+	endContact(a, b, c) {
+		console.log('endContact!');
+	}
+
+	onopen(socket) {
+		socket.id = this.wsIDCounter;
+		this.wsIDCounter++;
+		this.socketArr.push(socket);
 	}
 
 	onclose(socket, m) {	
 		console.log('socket onclose: ' + m);
+		console.log("looking for socket");
+		var index = this.socketArr.findIndex((x) => {return x.id === socket.id;});
+		this.socketArr.splice(index, 1);
+		console.log("index is: %s. socketArr.length: %s", index, this.socketArr.length);
 	}
 
 	onerror(socket, m) {
@@ -83,7 +113,10 @@ class GameWorld {
 		switch(jsonMsg.event.toLowerCase())
 		{
 			case "get-world":
-				this.getWorld(socket, jsonMsg);
+				console.log('now getting world');
+				var arrBodies = this.getWorld();
+				this.globalfuncs.sendJsonEvent(socket, "get-world-response", JSON.stringify(arrBodies))
+				console.log('getting world done')
 				break;
 			case "start-event":
 				this.startEvent(socket, jsonMsg);
@@ -101,25 +134,28 @@ class GameWorld {
 		}
 	}
 
-	getWorld(socket, jsonMsg) {
-		console.log('now getting world');
+	getWorld() {
 
 		var currentBody = this.world.getBodyList();
 		var arrBodies = [];
-		var bodyIDCounter = 1;
 		var fixtureIDCounter = 1;
 		while(currentBody)
 		{
 			var bodyObj = {
-				id: bodyIDCounter,
+				id: 0,
 				x: 0,
 				y: 0,
+				a: 0,
 				fixtures: []
 			};
 
 			var pos = currentBody.getPosition();
 			bodyObj.x = pos.x;
 			bodyObj.y = pos.y;
+			bodyObj.a = currentBody.getAngle();
+
+			var temp = currentBody.getUserData();
+			bodyObj.id = temp.id;
 
 			var currentFixture = currentBody.getFixtureList();
 			while(currentFixture)
@@ -168,12 +204,9 @@ class GameWorld {
 
 			arrBodies.push(bodyObj);
 			currentBody = currentBody.getNext();
-			bodyIDCounter++;
 		}
 
-		this.globalfuncs.sendJsonEvent(socket, "get-world-response", JSON.stringify(arrBodies))
-
-		console.log('getting world done')
+		return arrBodies;
 	}
 
 	startEvent(socket, jsonMsg) {
@@ -210,12 +243,15 @@ class GameWorld {
 
 
 	update(dt) {
+		console.log('=== frame %s ===', this.frameNum);
 		//simulate
-		var timeStep = 1/60;
+		var timeStep = 1/30;
 		var velocityIterations = 6;
 		var positionIterations = 2;
 	
+		console.log('begining world step');
 		this.world.step(timeStep, velocityIterations, positionIterations);
+		console.log('ending world step');
 		var p = this.boxBody.getPosition();
 		var a = this.boxBody.getAngle();
 		console.log('box position: %s, %s. Angle: %s', p.x, p.y, a);
@@ -225,7 +261,23 @@ class GameWorld {
 		{
 			setTimeout(this.update.bind(this, this.framePeriod), this.framePeriod)
 		}
+
+		this.sendWorldDeltas();
+
+		this.frameNum++;
 	}
+
+	sendWorldDeltas() {
+		//just send everything for now
+		var arrBodies = this.getWorld();
+		
+		for(var i = 0; i < this.socketArr.length; i++)
+		{
+			this.globalfuncs.sendJsonEvent(this.socketArr[i], "world-deltas", JSON.stringify(arrBodies));
+		}
+	}
+
+
 }
 
 exports.GameWorld = GameWorld;

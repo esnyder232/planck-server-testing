@@ -30,22 +30,25 @@ app.use('/client-dist', express.static(path.join(__dirname, "client-dist")));
 //create http endpoint to do websocket handshake
 server.on('upgrade', (req, socket, head) => {
 	console.log('Someone is connectiong with websockets. Handling websocket handshake...');
-	return wss.handleUpgrade(req, socket, head, socket => {
-		console.log('Websocket connected!');
-		socket.on("close", onclose.bind(this, socket));
-		socket.on("error", onerror.bind(this, socket));
-		socket.on("message", onmessage.bind(this, socket));
-		socket.on("pong", onpong.bind(this, socket));
-		socket.ping("this is a ping");
-	})
+	return wss.handleUpgrade(req, socket, head, onopen.bind(this));
 })
 
 //make a example game world
 var gw = new GameWorld();
 gw.create();
-gw.startGameLoop();
+//gw.startGameLoop();
 
 
+function onopen(socket) {
+	console.log('Websocket connected!');
+	socket.on("close", onclose.bind(this, socket));
+	socket.on("error", onerror.bind(this, socket));
+	socket.on("message", onmessage.bind(this, socket));
+	socket.on("pong", onpong.bind(this, socket));
+	socket.ping("this is a ping");
+
+	gw.onopen(socket);	
+}
 function onclose(socket, m) {	
 	gw.onclose(socket, m);	
 }

@@ -5,6 +5,7 @@ export default class ServerConnectionScene extends Phaser.Scene {
 		this.messageSent = false;
 		this.tempLineGraphicsArr = [];
 		this.planckUnitsToPhaserUnitsRatio = 4;
+		this.radiansToDegreesRatio = 180/3.14
 	}
 
 	init() {
@@ -72,17 +73,28 @@ export default class ServerConnectionScene extends Phaser.Scene {
 
 	onmessage(e) {
 		var jsonMsg = this.getJsonEvent(e.data);
-		console.log('message recieved from server. Event: ' + jsonMsg.event + '. msg: ' + jsonMsg.msg);
+		console.log('message recieved from server. Event: ' + jsonMsg.event);
+		switch(jsonMsg.event.toLowerCase())
+		{
+			case "get-world-response":
+				console.log('got world reponse!');
+				this.world = JSON.parse(jsonMsg.msg);
+
+				//convert phaser units to phaser units
+				this.convertPlankToPhaserUnits();
+
+				console.log(this.world);
+				this.createWorld();
+				break;
+			case "world-deltas":
+				console.log('got world deltas');
+				var deltas = JSON.parse(jsonMsg.msg);
+				this.processDeltas(deltas);
+				break;
+		}
 		if(jsonMsg.event == "get-world-response")
 		{
-			console.log('got world reponse!');
-			this.world = JSON.parse(jsonMsg.msg);
-
-			//convert phaser units to phaser units
-			this.convertPlankToPhaserUnits();
-
-			console.log(this.world);
-			this.drawWorld();
+			
 		}
 	}
 
@@ -114,12 +126,14 @@ export default class ServerConnectionScene extends Phaser.Scene {
 		return j;
 	}
 
-	drawWorld() {
-		console.log('drawing world now');
+	createWorld() {
+		console.log('creating world now');
 		
 		for(var i = 0; i < this.world.length; i++)
 		{
 			var o = this.world[i];
+			o.planckGraphics = [];
+
 			for(var j = 0; j < o.fixtures.length; j++)
 			{
 				var f = o.fixtures[j];
@@ -143,18 +157,43 @@ export default class ServerConnectionScene extends Phaser.Scene {
 						tempLineGraphics.setX(o.x);
 						tempLineGraphics.setY(o.y);
 
-						this.tempLineGraphicsArr.push(tempLineGraphics);
-						
+						o.planckGraphics.push(tempLineGraphics);
+
 						break;
 				}
 			}
 		}
 
-		console.log(this.tempLineGraphicsArr);
-
-		console.log('drawing world done');
+		console.log('creating world done');
 	}
 
+	processDeltas(deltas) {
+		//update x, y of all bodies in the world
+		for(var i = 0; i < this.world.length; i++)
+		{
+			var obj = this.world[i];
+			var myDelta = deltas.find((x) => {return x.id == obj.id});
+			if(myDelta)
+			{
+				if(obj.id == 4)
+				{
+					console.log('myDelta x, y: %s, %s', myDelta.x, myDelta.y);
+					var newx = myDelta.x * this.planckUnitsToPhaserUnitsRatio;
+					var newy = myDelta.y * this.planckUnitsToPhaserUnitsRatio * -1;
+					var newa = myDelta.a * -this.radiansToDegreesRatio;
+
+					console.log(obj);
+
+					for(var j = 0; j < obj.planckGraphics.length; j++)
+					{
+						obj.planckGraphics[j].setX(newx);
+						obj.planckGraphics[j].setY(newy);
+						obj.planckGraphics[j].setAngle(newa);
+					}
+				}
+			}
+		}
+	}
 
 	convertPlankToPhaserUnits() {
 		console.log('converting units now');
